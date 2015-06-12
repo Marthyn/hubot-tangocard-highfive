@@ -44,6 +44,27 @@ module.exports = (robot) ->
             chatService.user uid2, (uobj2) ->
                 callback uobj1, uobj2
 
+    parseCurrency = (amt_with_currency) ->
+      sign = amt_with_currency[0]
+      if sign == "$" || Number.isInteger(sign)
+        return amt_with_currency.match(/\$(\S+)?$/)[1]
+      else if sign == "€"
+        return convertEurosToDollars(amt_with_currency.match(/\€(\S+)?$/)[1])
+      else
+        return amt_with_currency.replace(/\D/g,'');
+
+    convertEurosToDollars = (amount) ->
+      apiKey = "need some way of env var"
+      to = "USD"
+      from = "EUR"
+      robot.http("http://jsonrates.com/get/?
+                  from=#{from}
+                  &to=#{to}
+                  &apiKey=#{apiKey}")
+       .get() (err, res, body) ->
+         exchangeRate = body["rate"]
+      return amount * exchangeRate
+
     # Helper for recording daily limits. Returns two values:
     # - Whether or not the user can spend `amount`
     # - The new daily total. This includes `amount` if it fits within the limit.
@@ -115,11 +136,15 @@ module.exports = (robot) ->
         sheet.stats msg
 
     # The main responder
-    robot.respond /highfive (.+?)(?: +\$(\S+))? +(?:for )?(.*)/, (msg) ->
+    robot.respond /highfive (.+?)(?: +(\S+))? +(?:for )?(.*)/, (msg) ->
         robot.logger.debug msg.match[1], msg.match[2], msg.match[3]
         from_user = msg.message.user.name
         to_user = msg.match[1][1..]
-        amt = parseFloat(msg.match[2] or 0)
+        amt_with_currency = msg.match[2]
+        if amt_with_currency
+          amount = parseCurrency(amt_with_currency)
+        else
+          amt = parseFloat(0)
         awardLimit = parseInt(process.env.HUBOT_HIGHFIVE_AWARD_LIMIT || 150)
         reason = msg.match[3]
         robot.logger.debug "from `#{from_user}` to `#{to_user}` amount `#{amt}` reason `#{reason}`"
