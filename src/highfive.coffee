@@ -54,7 +54,7 @@ module.exports = (robot) ->
         return amt_with_currency.replace(/\D/g,'');
 
     convertEurosToDollars = (amount) ->
-      apiKey = "need some way of env var"
+      apiKey = process.env.HUBOT_JSONRATES_API_KEY
       to = "USD"
       from = "EUR"
       robot.http("http://jsonrates.com/get/?
@@ -121,6 +121,7 @@ module.exports = (robot) ->
             'HUBOT_HIGHFIVE_SHEET_KEY',
             'HUBOT_HIGHFIVE_SHEET_DOCID',
             'HUBOT_HIGHFIVE_SHEET_SHEETNAME',
+            'HUBOT_JSONRATES_API_KEY'
         ]
         for v in envvars
             data[v] = process.env[v] || ''
